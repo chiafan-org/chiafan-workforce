@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 from enum import Enum
+from .utils import format_age
 
 
 class Stage(Enum):
@@ -31,14 +32,13 @@ class PlottingStatus(object):
         self.running = running
 
 
-    def to_dict(self):
+    def to_payload(self):
         return {
-            'timeElapsed': {
-                'days': self.time_elapsed.days,
-                'seconds': self.time_elapsed.seconds,
-            },
-            'stage': self.stage.name,
-            'progress': self.progress
+            'age': format_age(self.time_elapsed),
+            'plotting_space': self.plotting_space,
+            'destination': self.destination,
+            'stage': self.running.name if self.running is not RunningState.RUNNING else self.stage.name,
+            'progress': f'{self.progress:.2f} %',
         }
 
 

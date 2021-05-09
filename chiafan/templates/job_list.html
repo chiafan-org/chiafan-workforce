@@ -1,0 +1,33 @@
+<form class="ui form attached segment orange" action="/basic_info" method="post">
+  <h2 class="ui dividing header">Plotting Jobs</h2>
+  <table class="ui celled table">
+    <thead>
+      <tr>
+        <th>Age</th>
+        <th>Plotting</th>
+        <th>Destination</th>
+        <th>Stage</th>
+        <th>Progress</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in jobs %}
+      <tr>
+        <td> {{ item.age }} </td>
+        <td> {{ item.plotting_space }} </td>
+        <td> {{ item.destination }} </td>
+        <td>
+          {% if item.stage == 'SUCCESS' %}
+          <span class="ui olive label"> {{ item.stage }} </span>
+          {% elif item.stage == 'FAIL' %}
+          <span class="ui red label"> {{ item.stage }} </span>
+          {% else %}
+          <span class="ui blue label"> {{ item.stage }} </span>
+          {% endif %}
+        </td>
+        <td> {{ item.progress }} </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</form>

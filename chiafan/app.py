@@ -1,19 +1,24 @@
 import os
 import click
 
-from flask import current_app, g, Flask, redirect
+from flask import current_app, g, Flask, redirect, render_template, request, url_for
 from .chia_manager import ChiaManager
 
 app = Flask(__name__)
 app.secret_key = b'\xb7\x0b\x86\xc0+\x1a&\xd6 \xdfx\\\x90O\xac\xae'
 app.config['extra_fields'] = []
 
+
+@app.route('/', methods = ['GET'])
+def home():
+    return render_template('index.html',
+                           jobs = [status.to_payload() for status in ChiaManager().get_status()])
+
+
 @app.route('/create_plot', methods = [ 'GET', 'POST' ])
 def handle_create_plot():
     ChiaManager().create_plot()
-    return {
-        'success': True
-    }
+    return redirect(url_for('home'))
 
 
 @app.route('/status', methods = [ 'GET', 'POST' ])
