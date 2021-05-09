@@ -2,7 +2,6 @@ import os
 import click
 
 from flask import current_app, g, Flask, redirect
-from .states import PlottingSummary
 from .chia_manager import ChiaManager
 
 app = Flask(__name__)
@@ -16,11 +15,13 @@ def handle_create_plot():
         'success': True
     }
 
+
 @app.route('/status', methods = [ 'GET', 'POST' ])
 def handle_status():
     return {
-        'numPlottingProcesses': len(ChiaManager().plotting_processes)
+        'processes': ChiaManager().status()
     }
+
 
 @click.command()
 @click.option('--use_chiafunc', default = True,

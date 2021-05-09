@@ -1,3 +1,3 @@
-from .plotting_summary import PlottingSummary
+from .plotting_process import PlottingProcess
 
-__all__ = [ 'PlottingSummary' ]
+__all__ = [ 'PlottingProcess' ]
