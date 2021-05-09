@@ -1,4 +1,4 @@
-from .plotting_process import PlottingProcess
+from .plotting import PlottingProcess
 
 class ChiaManager(object):
     _instance = None
@@ -14,5 +14,5 @@ class ChiaManager(object):
         self.plotting_processes.append(PlottingProcess('/a/b/c', '/d/e/f', is_mock = True))
 
 
-    def status(self):
-        return [process.status() for process in self.plotting_processes]
+    def get_status(self):
+        return [process.inspect() for process in self.plotting_processes]

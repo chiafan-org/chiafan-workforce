@@ -19,7 +19,7 @@ def handle_create_plot():
 @app.route('/status', methods = [ 'GET', 'POST' ])
 def handle_status():
     return {
-        'processes': ChiaManager().status()
+        'processes': [status.to_dict() for status in ChiaManager().get_status()]
     }
 
 
