@@ -1,6 +1,5 @@
 from datetime import datetime
 from pathlib import Path
-from .plotting_summary import PlottingSummary
 
 
 class PlottingProcess(object):

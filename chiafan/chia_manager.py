@@ -1,4 +1,4 @@
-from .states import PlottingProcess
+from .plotting_process import PlottingProcess
 
 class ChiaManager(object):
     _instance = None
