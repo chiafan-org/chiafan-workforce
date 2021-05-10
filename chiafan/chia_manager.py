@@ -1,3 +1,4 @@
+from pathlib import Path
 from .plotting import PlottingProcess
 
 class ChiaManager(object):
@@ -10,8 +11,11 @@ class ChiaManager(object):
         return cls._instance
 
 
-    def create_plot(self):
-        self.plotting_processes.append(PlottingProcess('/a/b/c', '/d/e/f', is_mock = True))
+    def create_plot(self, plotting_space: str, destination: str, log_dir: str):
+        self.plotting_processes.append(PlottingProcess(
+            plotting_space = Path(plotting_space),
+            destination = Path(destination),
+            log_dir = Path(log_dir)))
 
 
     def get_status(self):
