@@ -81,7 +81,7 @@ class PlottingProcess(object):
                         'mkdir', '-p', f'{self.destination}'])
         self.log_file = open(self.log_path, 'w')
         proc = subprocess.Popen([
-            'docker', 'exec', 'chiabox', 'venv/bin/chia'
+            'docker', 'exec', 'chiabox', 'venv/bin/chia',
             'plots', 'create',
             '-t', f'{self.plotting_space}',
             '-d', f'{self.destination}',
