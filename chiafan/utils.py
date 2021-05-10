@@ -33,7 +33,6 @@ def inspect_log(log_path: Path):
             num_lines += 1
             m = STAGE_START_PATTERN.match(line)
             if m is not None:
-                print(m.groups())
                 stage_id = int(m.groups()[0])
     if num_lines >= 2630:
         stage_id = 5
