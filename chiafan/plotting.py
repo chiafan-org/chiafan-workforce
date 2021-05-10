@@ -49,10 +49,15 @@ class PlottingStatus(object):
 
 
 class PlottingProcess(object):
-    def __init__(self, plotting_space: Path, destination: Path, log_dir: Path = Path('/tmp'),
+    def __init__(self, plotting_space: Path, destination: Path,
+                 farm_key: str = '',
+                 pool_key: str = '',
+                 log_dir: Path = Path('/tmp'),
                  is_mock: bool = False):
         self.plotting_space = plotting_space
         self.destination = destination
+        self.farm_key = farm_key
+        self.pool_key = pool_key
         self.is_mock = is_mock
         self.starting_time = datetime.now()
         self.all_stages = [Stage.FORWARD,
@@ -70,8 +75,19 @@ class PlottingProcess(object):
     def _create_plotting_job(self):
         if not PlottingProcess._wait_for_chiabox_docker(20):
             return None
+        subprocess.run(['docker', 'exec', '-it', 'chiabox',
+                        'mkdir', '-p', f'{self.plotting_space}'])
+        subprocess.run(['docker', 'exec', '-it', 'chiabox',
+                        'mkdir', '-p', f'{self.destination}'])
         self.log_file = open(self.log_path, 'w')
-        proc = subprocess.Popen(['chiaplot1'], stdout = self.log_file, stderr = self.log_file)
+        proc = subprocess.Popen([
+            'chiafunc', 'plots', 'create',
+            '-t', f'{self.plotting_space}',
+            '-d', f'{self.destination}',
+            '-f', f'{self.farm_key}',
+            '-p', f'{self.pool_key}',
+            '-n', '1',
+        ], stdout = self.log_file, stderr = self.log_file)
         logging.info(f'Started plotting job, log at {self.log_path}')
         return proc
 
@@ -100,6 +116,14 @@ class PlottingProcess(object):
     def inspect(self):
         if self.is_mock:
             return self._inspect_mock()
+        if self.popen is None:
+            return PlottingStatus(plotting_space = self.plotting_space,
+                                  destination = self.destination,
+                                  time_elapsed = timedelta(seconds = 2),
+                                  stage = Stage.END,
+                                  running = RunningState.FAIL,
+                                  progress = 0.0)
+
         time_elapsed = datetime.now() - self.starting_time
         stage_id, progress = inspect_log(self.log_path)
         if stage_id == 5:

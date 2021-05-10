@@ -24,9 +24,22 @@ def handle_status():
 @click.command()
 @click.option('--log_dir', default = '/tmp',
               type = click.STRING, help = 'Whether to put the logs')
-def main(log_dir):
+@click.option('--init_plotting_space', default = '/plotting/temp',
+              type = click.STRING, help = 'Plotting space')
+@click.option('--init_destination', default = '/plotting/dest',
+              type = click.STRING, help = 'Destination')
+@click.option('--farm_key', default = '',
+              type = click.STRING, help = 'Farm key')
+@click.option('--pool_key', default = '',
+              type = click.STRING, help = 'Pool Key')
+def main(log_dir, init_plotting_space, init_destination, farm_key, pool_key):
     # TODO(breakds): Support chia (in addtion to chiafunc) as well
-    ChiaManager().create_plot('/a', '/b', '/tmp')
+    ChiaManager().create_plot(
+        plotting_space = init_plotting_space,
+        destination = init_destination,
+        farm_key = farm_key,
+        pool_key = pool_key,
+        log_dir = log_dir)
     app.run()
 
 
