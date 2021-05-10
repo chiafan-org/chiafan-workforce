@@ -40,7 +40,7 @@ def main(log_dir, init_plotting_space, init_destination, farm_key, pool_key):
         farm_key = farm_key,
         pool_key = pool_key,
         log_dir = log_dir)
-    app.run()
+    app.run(host = '0.0.0.0')
 
 
 if __name__ == '__main__':
