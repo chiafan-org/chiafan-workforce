@@ -17,9 +17,12 @@ def format_age(age: timedelta) -> str:
 
 
 def check_chiabox_docker_status():
-    output = subprocess.check_output(
-        ['docker', 'inspect', '-f', '{{.State.Status}}', 'chiabox'])
-    return output.decode('utf-8').strip()
+    try:
+        output = subprocess.check_output(
+            ['docker', 'inspect', '-f', '{{.State.Status}}', 'chiabox'])
+        return output.decode('utf-8').strip()
+    except subprocess.CallProcessError as e:
+        return 'not yet'
 
 
 def inspect_log(log_path: Path):
