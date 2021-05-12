@@ -23,20 +23,3 @@ def check_chiabox_docker_status():
         return output.decode('utf-8').strip()
     except subprocess.CallProcessError as e:
         return 'not yet'
-
-
-def inspect_log(log_path: Path):
-    """Retruns a pair (current_stage_id, progress)
-
-    """
-    stage_id = 1
-    num_lines = 0
-    with open(log_path, 'r') as f:
-        for line in f:
-            num_lines += 1
-            m = STAGE_START_PATTERN.match(line)
-            if m is not None:
-                stage_id = int(m.groups()[0])
-    if num_lines >= 2630:
-        stage_id = 5
-    return stage_id, num_lines / 2630.0 * 100.0
