@@ -116,7 +116,7 @@ class PlottingJob(object):
         
         # Ensure directory exists
         # TODO(breakds): Make this more general
-        if is_mock:
+        if self.is_mock:
             self.plotting_space.mkdir(parents = True, exist_ok = True)
             self.destination.mkdir(parents = True, exist_ok = True)
         else:
