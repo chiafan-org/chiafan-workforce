@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-20.09";
     flake-utils.url = "github:numtide/flake-utils";
-    plotting-simulator.url = "github:chiafan-org/plotting-simulator";
+    plotting-simulator.url = "github:chiafan-org/plotting-simulator?rev=54c53c96c907b3e4102a35ca0bdfd6b94fabf00f";
   };
 
   outputs = { self, nixpkgs, flake-utils, plotting-simulator, ... }:  let supportedLinuxSystems = [
@@ -20,7 +20,6 @@
   } // flake-utils.lib.eachSystem supportedLinuxSystems (system:
     let pkgs = import nixpkgs {
           overlays = [
-            plotting-simulator.overlay
             self.overlay
           ];
           inherit system;
@@ -36,7 +35,6 @@
         name = "chiafan-dev";
         buildInputs = with pkgs; [
           chiafan-py-dev
-          python3Packages.chiafan-plot-sim
         ];
       };
 
