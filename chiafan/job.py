@@ -115,8 +115,20 @@ class PlottingJob(object):
             return
         
         # Ensure directory exists
-        self.plotting_space.mkdir(parents = True, exist_ok = True)
-        self.destination.mkdir(parents = True, exist_ok = True)
+        # TODO(breakds): Make this more general
+        if is_mock:
+            self.plotting_space.mkdir(parents = True, exist_ok = True)
+            self.destination.mkdir(parents = True, exist_ok = True)
+        else:
+            try:
+                subprocess.check_output(['docker', 'exec', 'chiabox',
+                                         'mkdir', '-p', f'{self.plotting_space}'])
+                subprocess.check_output(['docker', 'exec', 'chiabox',
+                                         'mkdir', '-p', f'{self.destination}'])
+            except:
+                self.state = JobState.FAIL
+                self.error_message = f'Cannot ensure directory {self.plotting_space} and {self.destination}'
+                
 
         # Clear the plotting space
         try:
