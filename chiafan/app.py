@@ -1,6 +1,7 @@
 import os
 import click
 import logging
+from pathlib import Path
 
 from flask import current_app, g, Flask, redirect, render_template, request, url_for
 from .chia_manager import ChiaManager
@@ -17,26 +18,42 @@ app.config['extra_fields'] = []
 @app.route('/status', methods = [ 'GET', 'POST' ])
 def handle_status():
     return {
-        'jobs': [status.to_payload() for status in ChiaManager().get_status()]
+        'workers': ChiaManager().inspect_workers(),
+        'jobs': [status.to_payload() for status in ChiaManager().get_status()],
+    }
+
+
+@app.route('/start', methods = [ 'GET', 'POST' ])
+def handle_start():
+    if ChiaManager().thread is None:
+        num_workers = len(ChiaManager().workers)
+        logging.info('Start running plotting jobs with {num_workers} workers.')
+        ChiaManager().run()
+    else:
+        logging.info('Already running, ignore start command')
+    return {
+        'code': 'started'
     }
 
 
 @click.command()
-@click.option('--log_dir', default = '/tmp',
-              type = click.STRING, help = 'Whether to put the logs')
-@click.option('--init_plotting_space', default = '/plotting/temp',
-              type = click.STRING, help = 'Plotting space')
-@click.option('--init_destination', default = '/plotting/dest',
-              type = click.STRING, help = 'Destination')
 @click.option('--farm_key', default = '',
               type = click.STRING, help = 'Farm key')
 @click.option('--pool_key', default = '',
               type = click.STRING, help = 'Pool Key')
+@click.option('workers', '--worker', multiple = True,
+              type = click.STRING, help = 'a WORKSPACE:DESTINATION pair')
 @click.option('--is_mock', default = False,
               type = click.BOOL, help = 'Whether to run plotter simulator')
-def main(log_dir, init_plotting_space, init_destination, farm_key, pool_key, is_mock):
+def main(workers, farm_key, pool_key, is_mock):
     # TODO(breakds): Support chia (in addtion to chiafunc) as well
-    ChiaManager().run(pool_key = '1234', farm_key = '4567')
+    ChiaManager().set_farm_key(farm_key)
+    ChiaManager().set_pool_key(pool_key)
+    for worker_spec in workers:
+        workspace, destination = worker_spec.split(':')
+        ChiaManager().add_worker(workspace = Path(workspace),
+                                 destination = Path(destination),
+                                 is_mock = is_mock)
     app.run(host = '0.0.0.0')
 
 

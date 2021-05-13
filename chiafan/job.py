@@ -88,6 +88,7 @@ class PlottingJob(object):
         self.thread = threading.Thread(target = PlottingJob.run,
                                        args = (self,))
         self.thread.start()
+        logging.info(f'Spawn job {self.job_name}, {self.plotting_space} -> {self.destination}')
 
 
     def inspect(self):
@@ -128,6 +129,7 @@ class PlottingJob(object):
         if self.is_mock:
             self.proc = subprocess.Popen([
                 'chiafan-plot-sim',
+                # TODO(breakds): generalize the hardcoded path
                 '--template', '/home/breakds/Downloads/20210508_23_12_27.log',
                 '--destination', f'{self.destination}/plot-k32-{random.randint(0, 10000)}.plot',
                 '--duration', '10.0'], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -145,7 +147,6 @@ class PlottingJob(object):
         # Inspect log
         num_lines = 0
         final_plot = None
-        print(self.log_path)
         with open(self.log_path, 'w') as log_file:
             for line in io.TextIOWrapper(self.proc.stdout, encoding = 'utf-8'):
                 num_lines += 1

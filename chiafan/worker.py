@@ -29,4 +29,12 @@ class PlottingWorker(object):
             pool_key = pool_key,
             log_dir = Path('/tmp'),
             is_mock = self.is_mock)
-        logging.info(f'Spawn job {self.current_job.job_name}')
+
+
+    def inspect(self):
+        return {
+            'name': self.name,
+            'running': 'NOTHING' if self.current_job is None else self.current_job.job_name,
+            'plottingSpace': str(self.plotting_space),
+            'destination': str(self.destination),
+        }

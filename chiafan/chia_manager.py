@@ -14,34 +14,44 @@ class ChiaManager(object):
             cls._instance = super(ChiaManager, cls).__new__(cls)
             cls._instance.workers = []
             cls._instance.past_jobs_status = []
-            cls._instance.job_index = 0
+            cls._instance.farm_key = ''
+            cls._instance.pool_key = ''
+            cls._instance.thread = None
         return cls._instance
 
 
-    def run(self, farm_key: str, pool_key: str):
-        self.workers.append(PlottingWorker(
-            name = 'worker1',
-            workspace = Path('/home/breakds/tmp/plotting'),
-            destination = Path('/home/breakds/tmp/farm'),
-            is_mock = True))
-        self.workers.append(PlottingWorker(
-            name = 'worker2',
-            workspace = Path('/home/breakds/tmp/plotting'),
-            destination = Path('/home/breakds/tmp/farm'),
-            is_mock = True))
-        self.thread = threading.Thread(target = ChiaManager._run,
-                                       args = (self, farm_key, pool_key))
-        self.thread.start()
-    
+    def set_farm_key(self, farm_key):
+        self.farm_key = farm_key
 
-    def _run(self, farm_key: str, pool_key: str):
+
+    def set_pool_key(self, pool_key):
+        self.pool_key = pool_key
+
+
+    def add_worker(self, workspace: Path, destination: Path, is_mock: bool = False):
+        index = len(self.workers) + 1
+        self.workers.append(PlottingWorker(
+            name = f'worker{index}',
+            workspace = workspace,
+            destination = destination,
+            is_mock = is_mock))
+
+
+
+    def run(self):
+        self.thread = threading.Thread(target = ChiaManager._run,
+                                       args = (self,))
+        self.thread.start()
+
+
+    def _run(self):
         if not ChiaManager._wait_for_chiabox_docker(20):
             raise RuntimeError('Chiabox docker failed to start')
 
         while True:
             for worker in self.workers:
                 if worker.current_job is None:
-                    worker.spawn_job(farm_key, pool_key)
+                    worker.spawn_job(self.farm_key, self.pool_key)
             for worker in self.workers:
                 if worker.current_job.state is not JobState.ONGOING:
                     if worker.current_job.state is JobState.FAIL:
@@ -63,13 +73,13 @@ class ChiaManager(object):
         """
         for i in range(num_trials):
             if i != 0:
-                time.sleep(1)                
+                time.sleep(1)
             docker_status = check_chiabox_docker_status()
             if docker_status == 'running':
                 return True
             logging.info(f'{i + 1}/{num_trials} trials, chiabox docker container status = {docker_status}')
         logging.error(f'chiabox docker failed to start')
-        return False            
+        return False
 
 
     def get_status(self):
@@ -80,3 +90,7 @@ class ChiaManager(object):
         for job_status in self.past_jobs_status:
             result.append(job_status)
         return result
+
+
+    def inspect_workers(self):
+        return [worker.inspect() for worker in self.workers]
