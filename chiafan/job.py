@@ -77,7 +77,7 @@ class PlottingJob(object):
         self.stop_time = None
         self.log_path = Path(
             log_dir,
-            self.starting_time.strftime('chiafan_plotting_%Y%m%d_%H_%M_%S.log'))
+            self.starting_time.strftime(f'chiafan_plotting_{self.job_name}_%Y%m%d_%H_%M_%S.log'))
 
         self.state = JobState.ONGOING
         self.error_message = ''
