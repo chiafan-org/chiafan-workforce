@@ -7,13 +7,21 @@
     plotting-simulator.url = "github:chiafan-org/plotting-simulator";
   };
 
-  outputs = { self, nixpkgs, flake-utils,
-              plotting-simulator, ... }: flake-utils.lib.eachSystem [
+  outputs = { self, nixpkgs, flake-utils, plotting-simulator, ... }:  let supportedLinuxSystems = [
     "x86_64-linux" "i686-linux" "aarch64-linux"
-  ] (system:
+  ]; in {
+    overlay = final: prev: {
+      python3 = prev.python3.override {
+        packageOverrides = python-final: python-prev: {
+          chiafan-workforce = python-final.callPackage ./default.nix {};
+        };
+      };
+    };
+  } // flake-utils.lib.eachSystem supportedLinuxSystems (system:
     let pkgs = import nixpkgs {
           overlays = [
             plotting-simulator.overlay
+            self.overlay
           ];
           inherit system;
         };
@@ -31,5 +39,7 @@
           python3Packages.chiafan-plot-sim
         ];
       };
+
+      defaultPackage = pkgs.python3Packages.chiafan-workforce;
     });
 }
