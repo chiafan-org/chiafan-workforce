@@ -27,7 +27,7 @@ def handle_status():
 def handle_start():
     if ChiaManager().thread is None:
         num_workers = len(ChiaManager().workers)
-        logging.info('Start running plotting jobs with {num_workers} workers.')
+        logging.info(f'Start running plotting jobs with {num_workers} workers.')
         ChiaManager().run()
     else:
         logging.info('Already running, ignore start command')
