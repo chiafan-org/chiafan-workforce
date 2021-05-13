@@ -15,6 +15,21 @@
         "type": "github"
       }
     },
+    "flake-utils_2": {
+      "locked": {
+        "lastModified": 1620759905,
+        "narHash": "sha256-WiyWawrgmyN0EdmiHyG2V+fqReiVi8bM9cRdMaKQOFg=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "b543720b25df6ffdfcf9227afafc5b8c1fabfae8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1620332858,
@@ -31,10 +46,46 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1620764783,
+        "narHash": "sha256-b1jVyjyO79wf1J8vAtkwSwvwVC9QOrn0liMWrqdEzcQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "f34eb300b68ea66ef8a2dbc5eec3c86a8270e414",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-20.09",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "plotting-simulator": {
+      "inputs": {
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1620927252,
+        "narHash": "sha256-hTYlKS0ZNnR0DWmaxuVWxRxogbIYcIH1y5GbCxIC52M=",
+        "owner": "chiafan-org",
+        "repo": "plotting-simulator",
+        "rev": "54c53c96c907b3e4102a35ca0bdfd6b94fabf00f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "chiafan-org",
+        "repo": "plotting-simulator",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "plotting-simulator": "plotting-simulator"
       }
     }
   },

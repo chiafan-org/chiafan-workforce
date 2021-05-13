@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='chiafan',
+    name='chiafan-workforce',
     version='0.1.0',
     description='The Chia Plotter ToolKit',
     author='Break Yang',

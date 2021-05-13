@@ -1,7 +1,9 @@
 import time
 import logging
+import threading
 from pathlib import Path
 from .job import PlottingJob, JobState
+from .worker import PlottingWorker
 from .utils import check_chiabox_docker_status
 
 class ChiaManager(object):
@@ -10,42 +12,45 @@ class ChiaManager(object):
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ChiaManager, cls).__new__(cls)
-            cls._instance.active_jobs = []
+            cls._instance.workers = []
             cls._instance.past_jobs_status = []
             cls._instance.job_index = 0
         return cls._instance
 
 
-    def run(self,
-            workspace: Path, farm_key: str = '', pool_key: str = '',
-            total_jobs: int = None,
-            concurrent: int = 1):
+    def run(self, farm_key: str, pool_key: str):
+        self.workers.append(PlottingWorker(
+            name = 'worker1',
+            workspace = Path('/home/breakds/tmp/plotting'),
+            destination = Path('/home/breakds/tmp/farm'),
+            is_mock = True))
+        self.workers.append(PlottingWorker(
+            name = 'worker2',
+            workspace = Path('/home/breakds/tmp/plotting'),
+            destination = Path('/home/breakds/tmp/farm'),
+            is_mock = True))
+        self.thread = threading.Thread(target = ChiaManager._run,
+                                       args = (self, farm_key, pool_key))
+        self.thread.start()
+    
 
-        if not PlottingProcess._wait_for_chiabox_docker(20):
+    def _run(self, farm_key: str, pool_key: str):
+        if not ChiaManager._wait_for_chiabox_docker(20):
             raise RuntimeError('Chiabox docker failed to start')
 
         while True:
-            while len(self.active_jobs) < concurrent:
-                self.job_index += 1
-                self.active_jobs.append(PlottingJob(
-                    job_name = f'Job {self.job_index}',
-                    # TODO(breakds): Use reserved directory
-                    plotting_space = Path(workspace, f'{self.job_index}'),
-                    destination = Path(workspace, 'plots'),
-                    log_dir = '/tmp',
-                    farm_key = farm_key,
-                    pool_key = pool_key))
-
-            remaining = []
-            for job in self.active_jobs:
-                if job.state is not JobState.ONGOING:
-                    # TODO(breakd): Check join success
-                    job.thread.join()
-                    self.past_jobs_status.append(job.inspect)
-                else:
-                    remaining.append(job)
-            self.active_jobs = remaining
-
+            for worker in self.workers:
+                if worker.current_job is None:
+                    worker.spawn_job(farm_key, pool_key)
+            for worker in self.workers:
+                if worker.current_job.state is not JobState.ONGOING:
+                    if worker.current_job.state is JobState.FAIL:
+                        job_name = worker.current_job.job_name
+                        error_message = worker.current_job.error_message
+                        logging.error(f'Job {job_name} failed due to "{error_message}"')
+                    worker.current_job.thread.join()
+                    self.past_jobs_status.append(worker.current_job.inspect())
+                    worker.current_job = None
             time.sleep(1.6)
 
     @staticmethod
@@ -68,4 +73,10 @@ class ChiaManager(object):
 
 
     def get_status(self):
-        return [job.inspect()]
+        result = []
+        for worker in self.workers:
+            if worker.current_job is not None:
+                result.append(worker.current_job.inspect())
+        for job_status in self.past_jobs_status:
+            result.append(job_status)
+        return result

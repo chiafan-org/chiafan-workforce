@@ -17,7 +17,7 @@ app.config['extra_fields'] = []
 @app.route('/status', methods = [ 'GET', 'POST' ])
 def handle_status():
     return {
-        'processes': [status.to_payload() for status in ChiaManager().get_status()]
+        'jobs': [status.to_payload() for status in ChiaManager().get_status()]
     }
 
 
@@ -32,14 +32,11 @@ def handle_status():
               type = click.STRING, help = 'Farm key')
 @click.option('--pool_key', default = '',
               type = click.STRING, help = 'Pool Key')
-def main(log_dir, init_plotting_space, init_destination, farm_key, pool_key):
+@click.option('--is_mock', default = False,
+              type = click.BOOL, help = 'Whether to run plotter simulator')
+def main(log_dir, init_plotting_space, init_destination, farm_key, pool_key, is_mock):
     # TODO(breakds): Support chia (in addtion to chiafunc) as well
-    ChiaManager().create_plot(
-        plotting_space = init_plotting_space,
-        destination = init_destination,
-        farm_key = farm_key,
-        pool_key = pool_key,
-        log_dir = log_dir)
+    ChiaManager().run(pool_key = '1234', farm_key = '4567')
     app.run(host = '0.0.0.0')
 
 
