@@ -142,9 +142,8 @@ class PlottingJob(object):
             self.proc = subprocess.Popen([
                 'chiafan-plot-sim',
                 # TODO(breakds): generalize the hardcoded path
-                '--template', '/home/breakds/Downloads/20210508_23_12_27.log',
                 '--destination', f'{self.destination}/plot-k32-{random.randint(0, 10000)}.plot',
-                '--duration', '10.0'], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+                '--duration', '60.0'], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         else:
             self.proc = subprocess.Popen([
                 'docker', 'exec', 'chiabox', 'venv/bin/chia',
@@ -162,7 +161,7 @@ class PlottingJob(object):
         with open(self.log_path, 'w') as log_file:
             for line in io.TextIOWrapper(self.proc.stdout, encoding = 'utf-8'):
                 num_lines += 1
-                self.progress = num_lines / 2630.0 * 98.0
+                self.progress = num_lines / 2624.0 * 98.0
                 # Now update stage if needed.
                 m = STAGE_START_PATTERN.match(line)
                 if m is not None:
@@ -181,12 +180,15 @@ class PlottingJob(object):
                         final_plot = m.groups()[0]
 
                 log_file.write(line)
+                # Force flush the log every 10 lines
+                if num_lines % 10 == 0:
+                    log_file.flush()
 
                 # TODO(breakds): Handle this more gracefully
                 if num_lines > 2650:
                     break
                 
-        # TODO(breakds): Check num_lines = 2630
+        # TODO(breakds): Check num_lines = 2624
 
         # Now make sure the plotting process ends properly
         try:
