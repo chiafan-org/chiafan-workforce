@@ -12,6 +12,7 @@ class ChiaManager(object):
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ChiaManager, cls).__new__(cls)
+            cls._instance.shutting_down = False
             cls._instance.workers = []
             cls._instance.past_jobs_status = []
             cls._instance.farm_key = ''
@@ -43,6 +44,8 @@ class ChiaManager(object):
         
 
     def run(self):
+        if self.shutting_down:
+            return
         if self.thread is None:
             self.thread = threading.Thread(target = ChiaManager._run,
                                            args = (self,))
@@ -56,6 +59,10 @@ class ChiaManager(object):
             raise RuntimeError('Chiabox docker failed to start')
 
         while True:
+            if self.shutting_down:
+                for worker in self.workers:
+                    worker.ensure_shutdown()
+                break
             for worker in self.workers:
                 if worker.current_job is None and not self.draining:
                     worker.spawn_job(self.farm_key, self.pool_key)
@@ -123,3 +130,10 @@ class ChiaManager(object):
         return {
             'pipeline': pipeline
         }
+
+
+    def ensure_shutdown(self):
+        self.shutting_down = True
+        if self.thread is None:
+            return
+        self.thread.join()

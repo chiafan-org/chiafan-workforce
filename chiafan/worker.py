@@ -38,3 +38,10 @@ class PlottingWorker(object):
             'plottingSpace': str(self.plotting_space),
             'destination': str(self.destination),
         }
+
+
+    def ensure_shutdown(self):
+        if self.current_job is None:
+            return
+
+        self.current_job.ensure_shutdown()

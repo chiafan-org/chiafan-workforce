@@ -1,6 +1,7 @@
 import io
 import time
 import random
+import signal
 from pathlib import Path
 import subprocess
 import logging
@@ -90,6 +91,7 @@ class PlottingJob(object):
         self.thread.start()
         logging.info(f'Spawn job {self.job_name}, {self.plotting_space} -> {self.destination}')
 
+        self.shutting_down = False
 
     def inspect(self):
         ref_time = self.stop_time or datetime.now()
@@ -236,3 +238,13 @@ class PlottingJob(object):
         self.progress = 100.0
         self.stage = Stage.END
         self.state = JobState.SUCCESS
+
+
+    def ensure_shutdown(self):
+        self.shutting_down = True
+        if self.proc is not None:
+            self.proc.kill()
+            self.state = JobState.FAIL
+            self.error_message = 'Cannot terminate the plotting process'
+            self.stop_time = datetime.now()            
+        self.thread.join()

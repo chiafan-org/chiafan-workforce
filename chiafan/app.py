@@ -1,4 +1,6 @@
 import os
+import sys
+import signal
 import click
 import logging
 from pathlib import Path
@@ -46,6 +48,11 @@ def handle_drain():
     }
 
 
+def cleanup(signum, frame):
+    ChiaManager().ensure_shutdown()
+    sys.exit(0)
+    
+
 @click.command()
 @click.option('--farm_key', default = '',
               type = click.STRING, help = 'Farm key')
@@ -58,6 +65,8 @@ def handle_drain():
 @click.option('--port', default = '5000',
               type = click.STRING, help = 'Specify the port')
 def main(workers, farm_key, pool_key, is_mock, port):
+    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGTERM, cleanup)
     # TODO(breakds): Support chia (in addtion to chiafunc) as well
     ChiaManager().set_farm_key(farm_key)
     ChiaManager().set_pool_key(pool_key)
