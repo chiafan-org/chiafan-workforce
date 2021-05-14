@@ -18,6 +18,7 @@ app.config['extra_fields'] = []
 @app.route('/status', methods = [ 'GET', 'POST' ])
 def handle_status():
     return {
+        'server': ChiaManager().inspect(),
         'workers': ChiaManager().inspect_workers(),
         'jobs': [status.to_payload() for status in ChiaManager().get_status()],
     }
@@ -29,10 +30,19 @@ def handle_start():
         num_workers = len(ChiaManager().workers)
         logging.info(f'Start running plotting jobs with {num_workers} workers.')
         ChiaManager().run()
-    else:
-        logging.info('Already running, ignore start command')
+    elif ChiaManager().draining:
+        logging.info('Resume from draining')
+        ChiaManager().run()
     return {
         'code': 'started'
+    }
+
+
+@app.route('/drain', methods = [ 'GET', 'POST' ])
+def handle_drain():
+    ChiaManager().drain()
+    return {
+        'code': 'drained'
     }
 
 
@@ -45,7 +55,9 @@ def handle_start():
               type = click.STRING, help = 'a WORKSPACE:DESTINATION pair')
 @click.option('--is_mock', default = False,
               type = click.BOOL, help = 'Whether to run plotter simulator')
-def main(workers, farm_key, pool_key, is_mock):
+@click.option('--port', default = '5000',
+              type = click.STRING, help = 'Specify the port')
+def main(workers, farm_key, pool_key, is_mock, port):
     # TODO(breakds): Support chia (in addtion to chiafunc) as well
     ChiaManager().set_farm_key(farm_key)
     ChiaManager().set_pool_key(pool_key)
@@ -54,7 +66,7 @@ def main(workers, farm_key, pool_key, is_mock):
         ChiaManager().add_worker(workspace = Path(workspace),
                                  destination = Path(destination),
                                  is_mock = is_mock)
-    app.run(host = '0.0.0.0')
+    app.run(host = '0.0.0.0', port = port)
 
 
 if __name__ == '__main__':

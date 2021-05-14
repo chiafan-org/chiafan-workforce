@@ -17,6 +17,7 @@ class ChiaManager(object):
             cls._instance.farm_key = ''
             cls._instance.pool_key = ''
             cls._instance.thread = None
+            cls._instance.draining = False
         return cls._instance
 
 
@@ -37,11 +38,17 @@ class ChiaManager(object):
             is_mock = is_mock))
 
 
+    def drain(self):
+        self.draining = True
+        
 
     def run(self):
-        self.thread = threading.Thread(target = ChiaManager._run,
-                                       args = (self,))
-        self.thread.start()
+        if self.thread is None:
+            self.thread = threading.Thread(target = ChiaManager._run,
+                                           args = (self,))
+            self.thread.start()
+        else:
+            self.draining = False
 
 
     def _run(self):
@@ -50,9 +57,12 @@ class ChiaManager(object):
 
         while True:
             for worker in self.workers:
-                if worker.current_job is None:
+                if worker.current_job is None and not self.draining:
                     worker.spawn_job(self.farm_key, self.pool_key)
             for worker in self.workers:
+                if worker.current_job is None:
+                    # Note that this only happens in draining mode
+                    continue
                 if worker.current_job.state is not JobState.ONGOING:
                     if worker.current_job.state is JobState.FAIL:
                         job_name = worker.current_job.job_name
@@ -94,3 +104,22 @@ class ChiaManager(object):
 
     def inspect_workers(self):
         return [worker.inspect() for worker in self.workers]
+
+
+    def inspect(self):
+        pipeline = 'stopped'
+        if self.thread is None:
+            pipeline = 'stopped'
+        elif self.draining:
+            pipeline = 'draining'
+            idle_worker_count = 0
+            for worker in self.workers:
+                if worker.current_job is None:
+                    idle_worker_count += 1
+            if idle_worker_count == len(self.workers):
+                pipeline = 'stopped'
+        else:
+            pipeline = 'working'
+        return {
+            'pipeline': pipeline
+        }
