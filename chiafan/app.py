@@ -64,12 +64,16 @@ def cleanup(signum, frame):
               type = click.BOOL, help = 'Whether to run plotter simulator')
 @click.option('--port', default = '5000',
               type = click.STRING, help = 'Specify the port')
-def main(workers, farm_key, pool_key, is_mock, port):
+# Enable threading to avoid writing to the disk simultaneously
+@click.option('--staggering', default = 600,
+              type = click.INT, help = 'Staggering in seconds for multi-threading')
+def main(workers, farm_key, pool_key, is_mock, port, staggering):
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     # TODO(breakds): Support chia (in addtion to chiafunc) as well
     ChiaManager().set_farm_key(farm_key)
     ChiaManager().set_pool_key(pool_key)
+    ChiaManager().set_staggering_sec(staggering)
     for worker_spec in workers:
         workspace, destination = worker_spec.split(':')
         ChiaManager().add_worker(workspace = Path(workspace),

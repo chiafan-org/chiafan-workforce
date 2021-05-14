@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timedelta
 import logging
 import threading
 from pathlib import Path
@@ -13,6 +14,7 @@ class ChiaManager(object):
         if cls._instance is None:
             cls._instance = super(ChiaManager, cls).__new__(cls)
             cls._instance.shutting_down = False
+            cls._instance.staggering_sec = 600
             cls._instance.workers = []
             cls._instance.past_jobs_status = []
             cls._instance.farm_key = ''
@@ -30,6 +32,10 @@ class ChiaManager(object):
         self.pool_key = pool_key
 
 
+    def set_staggering_sec(self, staggering_sec):
+        self.staggering_sec = staggering_sec
+
+
     def add_worker(self, workspace: Path, destination: Path, is_mock: bool = False):
         index = len(self.workers) + 1
         self.workers.append(PlottingWorker(
@@ -41,7 +47,7 @@ class ChiaManager(object):
 
     def drain(self):
         self.draining = True
-        
+
 
     def run(self):
         if self.shutting_down:
@@ -63,9 +69,20 @@ class ChiaManager(object):
                 for worker in self.workers:
                     worker.ensure_shutdown()
                 break
+            # Staggering Handling
+            youngest_job_starting_time = datetime(year = 1970, month = 1, day = 1, second = 0)
             for worker in self.workers:
-                if worker.current_job is None and not self.draining:
-                    worker.spawn_job(self.farm_key, self.pool_key)
+                if worker.current_job is not None:
+                    youngest_job_starting_time = max(
+                        youngest_job_starting_time, worker.current_job.starting_time)
+            can_spawn =  (datetime.now() - youngest_job_starting_time).total_seconds() > self.staggering_sec
+
+            if (not self.draining) and can_spawn:
+                for worker in self.workers:
+                    if worker.current_job is None:
+                        worker.spawn_job(self.farm_key, self.pool_key)
+                        # Only start one at one time maximum because of staggering
+                        break
             for worker in self.workers:
                 if worker.current_job is None:
                     # Note that this only happens in draining mode
