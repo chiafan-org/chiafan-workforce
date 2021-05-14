@@ -13,8 +13,8 @@ from .utils import format_age
 
 STAGE_START_PATTERN = re.compile('^Starting phase (\d)/.*')
 
-# 2021-05-12T11:48:34.845  chia.plotting.create_plots       : INFO     plot-k32-2021-05-12-04-41-8d9b4ad89a836810e3baf2f74d88417aaa46223b6955d4213edddfba0f2c4f6a.plot
-COMPLETE_PATTERN = re.compile('.*INFO.*(plot-k.*\.plot)[^\.].*')
+# Renamed final file from "/plots/2/plot-k32-2021-05-13-22-35-f0ec4ccbca548f6a5df44c7ac99882576f1a7145980b197a918b129c6e8be39e.plot.2.tmp" to "/plots/2/plot-k32-2021-05-13-22-35-f0ec4ccbca548f6a5df44c7ac99882576f1a7145980b197a918b129c6e8be39e.plot"
+COMPLETE_PATTERN = re.compile('.*Renamed final file from.*to.*"(.*)".*')
 
 
 class Stage(Enum):
@@ -203,6 +203,8 @@ class PlottingJob(object):
             self.error_message = 'Could not locate generated plot'
             self.stop_time = datetime.now()            
             return
+
+        logging.info(f'Succesfully done plot with {self.job_name}. Final plot at {final_plot}')
 
         if self.s3_bucket == '':
             self.stage = Stage.END
