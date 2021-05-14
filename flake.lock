@@ -68,17 +68,16 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1620927252,
-        "narHash": "sha256-hTYlKS0ZNnR0DWmaxuVWxRxogbIYcIH1y5GbCxIC52M=",
+        "lastModified": 1621010212,
+        "narHash": "sha256-GEJaTj1ein6HQVqb8SpLzKLR8126G06QmlBU4GqoBIQ=",
         "owner": "chiafan-org",
         "repo": "plotting-simulator",
-        "rev": "54c53c96c907b3e4102a35ca0bdfd6b94fabf00f",
+        "rev": "0a2ae23abe3b6709f2a1061d104cec1a4763b045",
         "type": "github"
       },
       "original": {
         "owner": "chiafan-org",
         "repo": "plotting-simulator",
-        "rev": "54c53c96c907b3e4102a35ca0bdfd6b94fabf00f",
         "type": "github"
       }
     },
