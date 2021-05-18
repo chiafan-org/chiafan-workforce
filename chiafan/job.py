@@ -185,7 +185,7 @@ class PlottingJob(object):
             self.proc = subprocess.Popen([
                 'docker', 'exec', 'chiabox', 'venv/bin/chia',
                 'plots', 'create',
-                '-r', f'{plot.forward_concurrency}',
+                '-r', f'{self.forward_concurrency}',
                 '-t', f'{self.plotting_space}',
                 '-d', f'{self.destination}',
                 '-f', f'{self.farm_key}',
