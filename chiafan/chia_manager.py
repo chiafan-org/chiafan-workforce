@@ -61,8 +61,10 @@ class ChiaManager(object):
 
 
     def _run(self):
-        if not ChiaManager._wait_for_chiabox_docker(20):
-            raise RuntimeError('Chiabox docker failed to start')
+        is_mock = self.workers[0].is_mock
+        if not is_mock:
+            if not ChiaManager._wait_for_chiabox_docker(20):
+                raise RuntimeError('Chiabox docker failed to start')
 
         while True:
             if self.shutting_down:

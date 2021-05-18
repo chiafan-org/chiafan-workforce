@@ -14,6 +14,8 @@ from .utils import format_age
 
 STAGE_START_PATTERN = re.compile('^Starting phase (\d)/.*')
 
+STAGE_END_PATTERN = re.compile('^Time for phase (\d) = (.*) seconds.*')
+
 # Renamed final file from "/plots/2/plot-k32-2021-05-13-22-35-f0ec4ccbca548f6a5df44c7ac99882576f1a7145980b197a918b129c6e8be39e.plot.2.tmp" to "/plots/2/plot-k32-2021-05-13-22-35-f0ec4ccbca548f6a5df44c7ac99882576f1a7145980b197a918b129c6e8be39e.plot"
 COMPLETE_PATTERN = re.compile('.*Renamed final file from.*to.*"(.*)".*')
 
@@ -27,11 +29,36 @@ class Stage(Enum):
     S3_MIGRATION = 6
     END = 7
 
+    @staticmethod
+    def from_stage_id(stage_id: int):
+        if stage_id == 1:
+            return Stage.FORWARD
+        elif stage_id == 2:
+            return Stage.BACKWARD
+        elif stage_id == 3:
+            return Stage.COMPRESSION
+        elif stage_id == 4:
+            return Stage.WRITE_CHECKPOINT
+        return Stage.END
+        
 
 class JobState(Enum):
     ONGOING = 1
     FAIL = 2
     SUCCESS = 3
+
+
+class StageDetail(object):
+    def __init__(self, stage: Stage, time_consumption: timedelta):
+        self.stage = stage
+        self.time_consumption = time_consumption
+
+
+    def to_payload(self):
+        return {
+            'stage': self.stage.name,
+            'time_consumption': format_age(self.time_consumption),
+        }
 
 
 class JobStatus(object):
@@ -40,10 +67,12 @@ class JobStatus(object):
                  time_elapsed: timedelta = None,
                  stage: Stage = None,
                  state: JobState = None,
+                 stage_details: StageDetail = [],
                  progress: float = None):
         self.job_name = job_name
         self.time_elapsed = time_elapsed
         self.stage = stage
+        self.stage_details = stage_details
         self.progress = progress
         self.state = state
 
@@ -55,6 +84,7 @@ class JobStatus(object):
             'stage': (self.state.name
                       if self.state is not JobState.ONGOING
                       else self.stage.name),
+            'stageDetails': [ x.to_payload() for x in self.stage_details],
             'progress': f'{self.progress:.2f} %',
         }
 
@@ -83,6 +113,7 @@ class PlottingJob(object):
         self.state = JobState.ONGOING
         self.error_message = ''
         self.stage = Stage.INITIALIZATION
+        self.stage_details = []
         self.progress = 0.0
 
         self.proc = None
@@ -99,6 +130,7 @@ class PlottingJob(object):
             job_name = self.job_name,
             time_elapsed = ref_time - self.starting_time,
             stage = self.stage,
+            stage_details = self.stage_details,
             state = self.state,
             progress = self.progress)
 
@@ -164,22 +196,6 @@ class PlottingJob(object):
             for line in io.TextIOWrapper(self.proc.stdout, encoding = 'utf-8'):
                 num_lines += 1
                 self.progress = num_lines / 2624.0 * 98.0
-                # Now update stage if needed.
-                m = STAGE_START_PATTERN.match(line)
-                if m is not None:
-                    stage_id = int(m.groups()[0])
-                    if stage_id == 1:
-                        self.stage = Stage.FORWARD
-                    elif stage_id == 2:
-                        self.stage = Stage.BACKWARD
-                    elif stage_id == 3:
-                        self.stage = Stage.COMPRESSION
-                    elif stage_id == 4:
-                        self.stage = Stage.WRITE_CHECKPOINT
-                else:
-                    m = COMPLETE_PATTERN.match(line)
-                    if m is not None:
-                        final_plot = m.groups()[0]
 
                 log_file.write(line)
                 # Force flush the log every 10 lines
@@ -190,6 +206,27 @@ class PlottingJob(object):
                 if num_lines > 2650:
                     break
                 
+                # Now update stage if needed.
+                m = STAGE_START_PATTERN.match(line)
+                if m is not None:
+                    stage_id = int(m.groups()[0])
+                    self.stage = Stage.from_stage_id(stage_id)
+                    continue
+                
+                m = STAGE_END_PATTERN.match(line)
+                if m is not None:
+                    stage_id = int(m.groups()[0])
+                    used_seconds = float(m.groups()[1])
+                    self.stage_details.append(StageDetail(
+                        stage = Stage.from_stage_id(stage_id),
+                        time_consumption = timedelta(seconds = used_seconds)))
+                    continue
+                        
+                m = COMPLETE_PATTERN.match(line)
+                if m is not None:
+                    final_plot = m.groups()[0]
+                    continue
+
         # TODO(breakds): Check num_lines = 2624
 
         # Now make sure the plotting process ends properly
