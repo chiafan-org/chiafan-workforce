@@ -67,7 +67,9 @@ def cleanup(signum, frame):
 # Enable threading to avoid writing to the disk simultaneously
 @click.option('--staggering', default = 600,
               type = click.INT, help = 'Staggering in seconds for multi-threading')
-def main(workers, farm_key, pool_key, is_mock, port, staggering):
+@click.option('--forward_concurrency', default = 4,
+              type = click.INT, help = 'The number of threads used for the forward stage of each job')
+def main(workers, farm_key, pool_key, is_mock, port, staggering, forward_concurrency):
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     # TODO(breakds): Support chia (in addtion to chiafunc) as well
@@ -78,6 +80,7 @@ def main(workers, farm_key, pool_key, is_mock, port, staggering):
         workspace, destination = worker_spec.split(':')
         ChiaManager().add_worker(workspace = Path(workspace),
                                  destination = Path(destination),
+                                 forward_concurrency = forward_concurrency,
                                  is_mock = is_mock)
     app.run(host = '0.0.0.0', port = port)
 

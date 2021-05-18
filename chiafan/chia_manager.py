@@ -37,12 +37,15 @@ class ChiaManager(object):
         self.staggering_sec = staggering_sec
 
 
-    def add_worker(self, workspace: Path, destination: Path, is_mock: bool = False):
+    def add_worker(self, workspace: Path, destination: Path,
+                   forward_concurrency: int = 2,
+                   is_mock: bool = False):
         index = len(self.workers) + 1
         self.workers.append(PlottingWorker(
             name = f'worker{index}',
             workspace = workspace,
             destination = destination,
+            forward_concurrency = forward_concurrency,
             is_mock = is_mock))
 
 
@@ -81,8 +84,10 @@ class ChiaManager(object):
             can_spawn =  (datetime.now() - youngest_job_starting_time).total_seconds() > self.staggering_sec
 
             if (not self.draining) and can_spawn:
+                # Not check for cpu availability
+                available_cpus = os.cpu_count() - self.used_cpu_count()
                 for worker in self.workers:
-                    if worker.current_job is None:
+                    if worker.current_job is None and worker.forward_concurrency <= available_cpus:
                         worker.spawn_job(self.farm_key, self.pool_key)
                         # Only start one at one time maximum because of staggering
                         break
@@ -153,7 +158,15 @@ class ChiaManager(object):
             'num_workers': num_workers,
             'active_jobs': active_jobs,
             'cpu_count': os.cpu_count(),
+            'used_cpu_count': self.used_cpu_count(),
         }
+
+
+    def used_cpu_count(self):
+        count = 0
+        for worker in self.workers:
+            count += worker.used_cpu_count()
+        return count
 
 
     def ensure_shutdown(self):

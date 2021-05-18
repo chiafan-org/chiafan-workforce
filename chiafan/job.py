@@ -91,14 +91,17 @@ class JobStatus(object):
 
 class PlottingJob(object):
     def __init__(self, job_name: str,
-                 plotting_space: Path, destination: Path, s3_bucket: str,
+                 plotting_space: Path, destination: Path,
+                 s3_bucket: str,
                  log_dir: Path,
+                 forward_concurrency: int = 2,
                  farm_key: str = '',
                  pool_key: str = '',
                  is_mock = False):
         self.job_name = job_name
         self.plotting_space = plotting_space
         self.destination = destination
+        self.forward_concurrency = forward_concurrency
         self.farm_key = farm_key
         self.pool_key = pool_key
         self.s3_bucket = s3_bucket
@@ -182,6 +185,7 @@ class PlottingJob(object):
             self.proc = subprocess.Popen([
                 'docker', 'exec', 'chiabox', 'venv/bin/chia',
                 'plots', 'create',
+                '-r', f'{plot.forward_concurrency}',
                 '-t', f'{self.plotting_space}',
                 '-d', f'{self.destination}',
                 '-f', f'{self.farm_key}',
@@ -285,3 +289,11 @@ class PlottingJob(object):
             self.error_message = 'Cannot terminate the plotting process'
             self.stop_time = datetime.now()            
         self.thread.join()
+
+
+    def used_cpu_count(self):
+        if self.stage in [Stage.INITIALIZATION, Stage.FORWARD]:
+            return self.forward_concurrency
+        elif self.stage in [Stage.BACKWARD, Stage.COMPRESSION]:
+            return 1
+        return 0
