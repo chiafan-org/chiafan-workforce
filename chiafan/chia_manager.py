@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime, timedelta
 import logging
@@ -134,20 +135,24 @@ class ChiaManager(object):
 
     def inspect(self):
         pipeline = 'stopped'
+        num_workers = len(self.workers)
+        active_jobs = 0
+        for worker in self.workers:
+            if worker.current_job is not None:
+                active_jobs += 1
         if self.thread is None:
             pipeline = 'stopped'
         elif self.draining:
             pipeline = 'draining'
-            idle_worker_count = 0
-            for worker in self.workers:
-                if worker.current_job is None:
-                    idle_worker_count += 1
-            if idle_worker_count == len(self.workers):
+            if active_jobs == 0:
                 pipeline = 'stopped'
         else:
             pipeline = 'working'
         return {
-            'pipeline': pipeline
+            'pipeline': pipeline,
+            'num_workers': num_workers,
+            'active_jobs': active_jobs,
+            'cpu_count': os.cpu_count(),
         }
 
 
