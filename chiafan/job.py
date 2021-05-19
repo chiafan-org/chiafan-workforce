@@ -295,13 +295,12 @@ class PlottingJob(object):
             if self.is_mock:
                 subprocess.check_output(['rm', '-rf', f'{self.plotting_space}/*'])
             else:
-                logging.log(f'Cleaning up plotting space {self.plotting_space}...')
+                logging.info(f'Cleaning up plotting space {self.plotting_space}...')
                 out = subprocess.check_output(['docker', 'exec', 'chiabox',
                                                '/bin/bash', '-c',
                                                f'rm -rf {self.plotting_space}/*'])
-                logging.log(f'rm returned "{out}"')
+                logging.info(f'rm returned "{out}"')
         except Exception as err:
-            logging.error('rm -rf failed due to: {err}')
             self.state = JobState.FAIL
             self.error_message = f'Cannot clean up directory {self.plotting_space}/'
             self.stop_time = datetime.now()            
