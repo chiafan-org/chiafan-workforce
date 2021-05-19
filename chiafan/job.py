@@ -294,6 +294,6 @@ class PlottingJob(object):
     def used_cpu_count(self):
         if self.stage in [Stage.INITIALIZATION, Stage.FORWARD]:
             return self.forward_concurrency
-        elif self.stage in [Stage.BACKWARD, Stage.COMPRESSION]:
+        elif self.stage in [Stage.BACKWARD, Stage.COMPRESSION, Stage.WRITE_CHECKPOINT]:
             return 1
         return 0
