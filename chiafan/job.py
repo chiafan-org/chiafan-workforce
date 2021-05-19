@@ -300,7 +300,8 @@ class PlottingJob(object):
                                                '/bin/bash', '-c',
                                                f'rm -rf {self.plotting_space}/*'])
                 logging.log(f'rm returned "{out}"')
-        except:
+        except Exception as err:
+            logging.error('rm -rf failed due to: {err}')
             self.state = JobState.FAIL
             self.error_message = f'Cannot clean up directory {self.plotting_space}/'
             self.stop_time = datetime.now()            
