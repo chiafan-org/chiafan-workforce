@@ -48,6 +48,15 @@ def handle_drain():
     }
 
 
+@app.route('/abort', methods = [ 'GET', 'POST' ])
+def handle_abort():
+    ChiaManager().abort_job(request.json['target'])
+    return {
+        'code': 'aborted',
+        'target': request.json['target']
+    }
+
+
 def cleanup(signum, frame):
     ChiaManager().ensure_shutdown()
     sys.exit(0)

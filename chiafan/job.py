@@ -46,6 +46,7 @@ class JobState(Enum):
     ONGOING = 1
     FAIL = 2
     SUCCESS = 3
+    ABORT = 4
 
 
 class StageDetail(object):
@@ -168,11 +169,9 @@ class PlottingJob(object):
                 
 
         # Clear the plotting space
-        try:
-            subprocess.check_output(['rm', '-rf', f'{self.plotting_space}/*'])
-        except:
-            self.state = JobState.FAIL
-            self.error_message = f'Cannot clean up directory {self.plotting_space}/'
+        self.try_clean_up_plotting_space()
+        if self.state is JobState.FAIL:
+            return
 
         # Start the plotting process
         if self.is_mock:
@@ -289,6 +288,27 @@ class PlottingJob(object):
             self.error_message = 'Cannot terminate the plotting process'
             self.stop_time = datetime.now()            
         self.thread.join()
+
+
+    def try_clean_up_plotting_space(self):
+        try:
+            if self.is_mock:
+                subprocess.check_output(['rm', '-rf', f'{self.plotting_space}/*'])
+            else:
+                subprocess.check_output(['docker', 'exec', 'chiabox',
+                                         'rm', '-rf', f'{self.plotting_space}/*'])
+        except:
+            self.state = JobState.FAIL
+            self.error_message = f'Cannot clean up directory {self.plotting_space}/'
+            self.stop_time = datetime.now()            
+
+
+    def abort(self):
+        self.ensure_shutdown()
+        self.try_clean_up_plotting_space()
+        self.state = JobState.ABORT
+        self.error_message = 'Manually aborted'
+        self.stop_time = datetime.now()            
 
 
     def used_cpu_count(self):

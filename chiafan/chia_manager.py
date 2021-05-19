@@ -75,34 +75,37 @@ class ChiaManager(object):
                 for worker in self.workers:
                     worker.ensure_shutdown()
                 break
-            # Staggering Handling
-            youngest_job_starting_time = datetime(year = 1970, month = 1, day = 1, second = 0)
-            for worker in self.workers:
-                if worker.current_job is not None:
-                    youngest_job_starting_time = max(
-                        youngest_job_starting_time, worker.current_job.starting_time)
-            can_spawn =  (datetime.now() - youngest_job_starting_time).total_seconds() > self.staggering_sec
-
-            if (not self.draining) and can_spawn:
-                # Not check for cpu availability
-                available_cpus = os.cpu_count() - self.used_cpu_count()
+            try:
+                # Staggering Handling
+                youngest_job_starting_time = datetime(year = 1970, month = 1, day = 1, second = 0)
                 for worker in self.workers:
-                    if worker.current_job is None and worker.forward_concurrency <= available_cpus:
-                        worker.spawn_job(self.farm_key, self.pool_key)
-                        # Only start one at one time maximum because of staggering
-                        break
-            for worker in self.workers:
-                if worker.current_job is None:
-                    # Note that this only happens in draining mode
-                    continue
-                if worker.current_job.state is not JobState.ONGOING:
-                    if worker.current_job.state is JobState.FAIL:
-                        job_name = worker.current_job.job_name
-                        error_message = worker.current_job.error_message
-                        logging.error(f'Job {job_name} failed due to "{error_message}"')
-                    worker.current_job.thread.join()
-                    self.past_jobs_status.append(worker.current_job.inspect())
-                    worker.current_job = None
+                    if worker.current_job is not None:
+                        youngest_job_starting_time = max(
+                            youngest_job_starting_time, worker.current_job.starting_time)
+                can_spawn =  (datetime.now() - youngest_job_starting_time).total_seconds() > self.staggering_sec
+
+                if (not self.draining) and can_spawn:
+                    # Not check for cpu availability
+                    available_cpus = os.cpu_count() - self.used_cpu_count()
+                    for worker in self.workers:
+                        if worker.current_job is None and worker.forward_concurrency <= available_cpus:
+                            worker.spawn_job(self.farm_key, self.pool_key)
+                            # Only start one at one time maximum because of staggering
+                            break
+                for worker in self.workers:
+                    if worker.current_job is None:
+                        # Note that this only happens in draining mode
+                        continue
+                    if worker.current_job.state is not JobState.ONGOING:
+                        if worker.current_job.state is JobState.FAIL:
+                            job_name = worker.current_job.job_name
+                            error_message = worker.current_job.error_message
+                            logging.error(f'Job {job_name} failed due to "{error_message}"')
+                        worker.current_job.thread.join()
+                        self.past_jobs_status.append(worker.current_job.inspect())
+                        worker.current_job = None
+            except Exception as err:
+                logging.warning(f'Problem encountered: {err}. Will wait and try again.')
             time.sleep(1.6)
 
     @staticmethod
@@ -174,3 +177,10 @@ class ChiaManager(object):
         if self.thread is None:
             return
         self.thread.join()
+
+
+    def abort_job(self, spec: str):
+        worker_name, job_name = spec.split('.')
+        for worker in self.workers:
+            if worker.name == worker_name:
+                worker.abort_job()

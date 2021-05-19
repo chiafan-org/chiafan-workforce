@@ -50,6 +50,12 @@ class PlottingWorker(object):
         self.current_job.ensure_shutdown()
 
 
+    def abort_job(self):
+        if self.current_job is not None:
+            self.current_job.abort()
+        self.current_job = None
+
+
     def used_cpu_count(self):
         if self.current_job is None:
             return 0
