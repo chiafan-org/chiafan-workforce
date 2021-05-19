@@ -297,9 +297,9 @@ class PlottingJob(object):
             else:
                 logging.log(f'Cleaning up plotting space {self.plotting_space}...')
                 out = subprocess.check_output(['docker', 'exec', 'chiabox',
-                                               'rm', '-rf', f'{self.plotting_space}/*'])
+                                               '/bin/bash', '-c',
+                                               f'rm -rf {self.plotting_space}/*'])
                 logging.log(f'rm returned "{out}"')
-
         except:
             self.state = JobState.FAIL
             self.error_message = f'Cannot clean up directory {self.plotting_space}/'
