@@ -316,7 +316,7 @@ class PlottingJob(object):
                                                    '/bin/bash', '-c',
                                                    f'rm -rf {self.plotting_space}/*'])
                 else:
-                    out = subprocess.check_output([f'rm -rf {self.plotting_space}/*'])
+                    out = subprocess.check_output(['rm', '-rf', f'{self.plotting_space}/*'])
                 logging.info(f'rm returned "{out}"')
         except Exception as err:
             self.state = JobState.FAIL
