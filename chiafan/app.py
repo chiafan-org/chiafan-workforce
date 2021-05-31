@@ -78,13 +78,16 @@ def cleanup(signum, frame):
               type = click.INT, help = 'Staggering in seconds for multi-threading')
 @click.option('--forward_concurrency', default = 4,
               type = click.INT, help = 'The number of threads used for the forward stage of each job')
-def main(workers, farm_key, pool_key, is_mock, port, staggering, forward_concurrency):
+@click.option('--use_chiabox', default = True,
+              type = click.BOOL, help = 'whether it relies on the chiabox docker')
+def main(workers, farm_key, pool_key, is_mock, port, staggering, forward_concurrency, use_chiabox):
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     # TODO(breakds): Support chia (in addtion to chiafunc) as well
     ChiaManager().set_farm_key(farm_key)
     ChiaManager().set_pool_key(pool_key)
     ChiaManager().set_staggering_sec(staggering)
+    ChiaManager().set_use_chiabox(use_chiabox)
     for worker_spec in workers:
         workspace, destination = worker_spec.split(':')
         ChiaManager().add_worker(workspace = Path(workspace),

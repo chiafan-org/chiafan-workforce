@@ -18,6 +18,10 @@ class ChiaManager(object):
             cls._instance.staggering_sec = 600
             cls._instance.workers = []
             cls._instance.past_jobs_status = []
+            # If use_chiabox is set to True, the manager will assume
+            # the docker container chiabox exists and view it as the
+            # only chia command provider.
+            cls._instance.use_chiabox = True
             cls._instance.farm_key = ''
             cls._instance.pool_key = ''
             cls._instance.thread = None
@@ -37,6 +41,10 @@ class ChiaManager(object):
         self.staggering_sec = staggering_sec
 
 
+    def set_use_chiabox(self, value: bool):
+        self.use_chiabox = value
+
+
     def add_worker(self, workspace: Path, destination: Path,
                    forward_concurrency: int = 2,
                    is_mock: bool = False):
@@ -46,6 +54,7 @@ class ChiaManager(object):
             workspace = workspace,
             destination = destination,
             forward_concurrency = forward_concurrency,
+            use_chiabox = self.use_chiabox,
             is_mock = is_mock))
 
 
@@ -66,7 +75,7 @@ class ChiaManager(object):
 
     def _run(self):
         is_mock = self.workers[0].is_mock
-        if not is_mock:
+        if not is_mock and self.use_chiabox:
             if not ChiaManager._wait_for_chiabox_docker(20):
                 raise RuntimeError('Chiabox docker failed to start')
 

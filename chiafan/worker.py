@@ -9,6 +9,7 @@ class PlottingWorker(object):
     def __init__(self, name: str,
                  workspace: Path, destination: Path,
                  forward_concurrency: int = 2,
+                 use_chiabox: bool = True,
                  is_mock: bool = False):
         self.name = name
         self.workspace = workspace
@@ -17,6 +18,7 @@ class PlottingWorker(object):
         self.destination = destination
         self.current_job = None
         self.job_index = 0
+        self.use_chiabox = use_chiabox
         self.is_mock = is_mock
 
 
@@ -31,6 +33,7 @@ class PlottingWorker(object):
             farm_key = farm_key,
             pool_key = pool_key,
             log_dir = Path('/tmp'),
+            use_chiabox = self.use_chiabox,
             is_mock = self.is_mock)
 
 

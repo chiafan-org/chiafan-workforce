@@ -40,7 +40,7 @@ class Stage(Enum):
         elif stage_id == 4:
             return Stage.WRITE_CHECKPOINT
         return Stage.END
-        
+
 
 class JobState(Enum):
     ONGOING = 1
@@ -98,7 +98,8 @@ class PlottingJob(object):
                  forward_concurrency: int = 2,
                  farm_key: str = '',
                  pool_key: str = '',
-                 is_mock = False):
+                 use_chiabox: bool = True,
+                 is_mock: bool = False):
         self.job_name = job_name
         self.plotting_space = plotting_space
         self.destination = destination
@@ -106,6 +107,7 @@ class PlottingJob(object):
         self.farm_key = farm_key
         self.pool_key = pool_key
         self.s3_bucket = s3_bucket
+        self.use_chiabox = use_chiabox
         self.is_mock = is_mock
 
         self.starting_time = datetime.now()
@@ -125,7 +127,6 @@ class PlottingJob(object):
                                        args = (self,))
         self.thread.start()
         logging.info(f'Spawn job {self.job_name}, {self.plotting_space} -> {self.destination}')
-
         self.shutting_down = False
 
     def inspect(self):
@@ -149,9 +150,9 @@ class PlottingJob(object):
         if self.pool_key == '':
             self.state = JobState.FAIL
             self.error_message = 'Missing pool key'
-            self.stop_time = datetime.now()            
+            self.stop_time = datetime.now()
             return
-        
+
         # Ensure directory exists
         # TODO(breakds): Make this more general
         if self.is_mock:
@@ -159,14 +160,18 @@ class PlottingJob(object):
             self.destination.mkdir(parents = True, exist_ok = True)
         else:
             try:
-                subprocess.check_output(['docker', 'exec', 'chiabox',
-                                         'mkdir', '-p', f'{self.plotting_space}'])
-                subprocess.check_output(['docker', 'exec', 'chiabox',
-                                         'mkdir', '-p', f'{self.destination}'])
+                if self.use_chiabox:
+                    subprocess.check_output(['docker', 'exec', 'chiabox',
+                                             'mkdir', '-p', f'{self.plotting_space}'])
+                    subprocess.check_output(['docker', 'exec', 'chiabox',
+                                             'mkdir', '-p', f'{self.destination}'])
+                else:
+                    subprocess.check_output(['mkdir', '-p', f'{self.plotting_space}'])
+                    subprocess.check_output(['mkdir', '-p', f'{self.destination}'])
             except:
                 self.state = JobState.FAIL
                 self.error_message = f'Cannot ensure directory {self.plotting_space} and {self.destination}'
-                
+
 
         # Clear the plotting space
         self.try_clean_up_plotting_space()
@@ -180,10 +185,20 @@ class PlottingJob(object):
                 # TODO(breakds): generalize the hardcoded path
                 '--destination', f'{self.destination}/plot-k32-{random.randint(0, 10000)}.plot',
                 '--duration', '60.0'], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        else:
+        elif self.use_chiabox:
             self.proc = subprocess.Popen([
                 'docker', 'exec', 'chiabox', 'venv/bin/chia',
                 'plots', 'create',
+                '-r', f'{self.forward_concurrency}',
+                '-t', f'{self.plotting_space}',
+                '-d', f'{self.destination}',
+                '-f', f'{self.farm_key}',
+                '-p', f'{self.pool_key}',
+                '-n', '1',
+            ], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        else:
+            self.proc = subprocess.Popen([
+                'chia', 'plots', 'create',
                 '-r', f'{self.forward_concurrency}',
                 '-t', f'{self.plotting_space}',
                 '-d', f'{self.destination}',
@@ -208,14 +223,14 @@ class PlottingJob(object):
                 # TODO(breakds): Handle this more gracefully
                 if num_lines > 2650:
                     break
-                
+
                 # Now update stage if needed.
                 m = STAGE_START_PATTERN.match(line)
                 if m is not None:
                     stage_id = int(m.groups()[0])
                     self.stage = Stage.from_stage_id(stage_id)
                     continue
-                
+
                 m = STAGE_END_PATTERN.match(line)
                 if m is not None:
                     stage_id = int(m.groups()[0])
@@ -224,7 +239,7 @@ class PlottingJob(object):
                         stage = Stage.from_stage_id(stage_id),
                         time_consumption = timedelta(seconds = used_seconds)))
                     continue
-                        
+
                 m = COMPLETE_PATTERN.match(line)
                 if m is not None:
                     final_plot = m.groups()[0]
@@ -239,13 +254,13 @@ class PlottingJob(object):
             self.proc.kill()
             self.state = JobState.FAIL
             self.error_message = 'Cannot terminate the plotting process'
-            self.stop_time = datetime.now()            
+            self.stop_time = datetime.now()
             return
 
         if final_plot is None:
             self.state = JobState.FAIL
             self.error_message = 'Could not locate generated plot'
-            self.stop_time = datetime.now()            
+            self.stop_time = datetime.now()
             return
 
         logging.info(f'Succesfully done plot with {self.job_name}. Final plot at {final_plot}')
@@ -255,7 +270,7 @@ class PlottingJob(object):
             self.state = JobState.SUCCESS
             self.progress = 100.0
             return
-            
+
         # Migrate to S3
         # TODO(breakds): Add monitoring of S3 migration progress
         self.stage = Stage.S3_MIGRATION
@@ -264,7 +279,7 @@ class PlottingJob(object):
                                       f'{self.destination}/{final_plot}',
                                       self.s3_bucket,
                                       '--no-progress', '--storage-class', 'ONEZONE_IA'])
-        
+
         try:
             # With 60MB/s, a plot should finish migration in 1690 seconds
             self.proc.communicate(timeout = 3600)
@@ -272,7 +287,7 @@ class PlottingJob(object):
             self.proc.kill()
             self.state = JobState.FAIL
             self.error_message = 'Cannot terminate the plotting process'
-            self.stop_time = datetime.now()            
+            self.stop_time = datetime.now()
             return
 
         self.progress = 100.0
@@ -286,7 +301,7 @@ class PlottingJob(object):
             self.proc.kill()
             self.state = JobState.FAIL
             self.error_message = 'Cannot terminate the plotting process'
-            self.stop_time = datetime.now()            
+            self.stop_time = datetime.now()
         self.thread.join()
 
 
@@ -296,14 +311,17 @@ class PlottingJob(object):
                 subprocess.check_output(['rm', '-rf', f'{self.plotting_space}/*'])
             else:
                 logging.info(f'Cleaning up plotting space {self.plotting_space}...')
-                out = subprocess.check_output(['docker', 'exec', 'chiabox',
-                                               '/bin/bash', '-c',
-                                               f'rm -rf {self.plotting_space}/*'])
+                if self.use_chiabox:
+                    out = subprocess.check_output(['docker', 'exec', 'chiabox',
+                                                   '/bin/bash', '-c',
+                                                   f'rm -rf {self.plotting_space}/*'])
+                else:
+                    out = subprocess.check_output([f'rm -rf {self.plotting_space}/*'])
                 logging.info(f'rm returned "{out}"')
         except Exception as err:
             self.state = JobState.FAIL
             self.error_message = f'Cannot clean up directory {self.plotting_space}/'
-            self.stop_time = datetime.now()            
+            self.stop_time = datetime.now()
 
 
     def abort(self):
@@ -311,7 +329,7 @@ class PlottingJob(object):
         self.try_clean_up_plotting_space()
         self.state = JobState.ABORT
         self.error_message = 'Manually aborted'
-        self.stop_time = datetime.now()            
+        self.stop_time = datetime.now()
 
 
     def used_cpu_count(self):
