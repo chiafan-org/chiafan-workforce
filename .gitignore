@@ -130,3 +130,7 @@ dmypy.json
 
 # Nix
 result
+
+# direnv
+.envrc
+.direnv
